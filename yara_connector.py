@@ -53,7 +53,7 @@ class YaraConnector(BaseConnector):
             return
 
         if response.headers.get("Content-Type", "").find("application/zip") > -1:
-            self.save_progress(f"Extracting downloaded zip")
+            self.save_progress("Extracting downloaded zip")
             with zipfile.ZipFile(io.BytesIO(response.content)) as zip:
                 zip.extractall(path=self.state_dir)
 
@@ -71,10 +71,10 @@ class YaraConnector(BaseConnector):
         """
 
         action_result = self.add_action_result(ActionResult())
-        env_vars = self.get_config().get("_reserved_environment_variables", {})
-
-        if env_vars:
-            for _, source in enumerate(env_vars):
+        if env_vars := self.get_config().get(
+            "_reserved_environment_variables", {}
+        ):
+            for source in env_vars:
                 location = env_vars.get(source, {}).get("value", None)
                 try:
                     self._fetch_yara_source(location)
@@ -137,7 +137,7 @@ class YaraConnector(BaseConnector):
                 }
             )
 
-        return self._return_with_message(f"Listed sources!", action_result)
+        return self._return_with_message("Listed sources!", action_result)
 
     def _handle_yara_scan(self, param) -> RetVal:
         """
@@ -189,12 +189,11 @@ class YaraConnector(BaseConnector):
             if not file.is_dir():
                 try:
                     self.save_progress(f"Scanning {file}")
-                    matches = rules.match(
+                    if matches := rules.match(
                         filepath=str(file.resolve()),
                         fast=param.get("fast_mode", False),
                         timeout=param.get("timeout", 60),
-                    )
-                    if matches:
+                    ):
                         for match in matches:
                             self.save_progress(f"Found match for {match.rule}")
                             action_result.add_data(
@@ -274,7 +273,7 @@ def main():
 
     if username and password:
         try:
-            login_url = YaraConnector._get_phantom_base_url() + "/login"
+            login_url = f"{YaraConnector._get_phantom_base_url()}/login"
 
             print("Accessing the Login page")
             r = requests.get(login_url, verify=False)  # nosec
